@@ -1,0 +1,619 @@
+---
+title: "Final_Billionaire"
+author: "Meherunnesa Mitu"
+date: "2023-12-08"
+output: word_document
+
+---
+
+```{r}
+library(ggplot2)
+library(dplyr)
+library(plotly)
+```
+
+```{r}
+setwd("C:/Users/Student/Desktop/Billionaire final")
+```
+
+
+```{r}
+data <- read.csv("C:/Users/Student/Desktop/Billionaire/Billionaire.csv")
+```
+
+```{r}
+# Replace 'Hong Kong' with 'China'
+data$country[data$country == 'Hong Kong'] <- 'China'
+data$countryOfCitizenship[data$countryOfCitizenship == 'Hong Kong'] <- 'China'
+ 
+# Replace the NAs of "gdp_country" with gdp of china where the country is 'China'
+data$gdp_country[data$country == 'China'] <- '$19,910,000,000,000'
+
+# Replace the NAs of "gdp_country" with gdp of Taiwan where the country is 'Taiwan'
+data$gdp_country[data$country == 'Taiwan'] <- '$774700000000'
+
+# Remove comma and $ sign from gdp_country
+data$gdp_country <- gsub(",", "", data$gdp_country) 
+data$gdp_country <- gsub("\\$", "", data$gdp_country)
+
+data$gdp_country <- as.numeric(data$gdp_country) 
+
+```
+
+```{r}
+# Create a new variable named 'top500' based on the rank condition
+data <- data %>%
+  mutate(top500 = ifelse(rank <= 500.5, 1, 0))
+```
+
+```{r}
+
+# Create 'gdp_per_capita' variable
+data$gdp_per_capita <- data$gdp_country / data$population_country
+
+```
+
+
+```{r}
+# Check for NA's in gdp_country
+na_countries <- data$country[is.na(data$gdp_country)]
+print(na_countries)
+```
+
+```{r}
+# Check for blanks in gdp_country
+blank_gdp_countries <- data$country[data$gdp_country == ""]
+print(blank_gdp_countries)
+```
+
+```{r}
+# Making a new variable 'moved'
+data$moved <- as.integer(data$country != data$countryOfCitizenship)
+data$moved <- as.factor(data$moved)
+```
+
+
+```{r}
+# Count the frequency of each country
+country_counts <- data %>%
+  group_by(country) %>%
+  summarise(count = n()) %>%
+  arrange(desc(count))
+
+# Select the top 10 countries
+top_countries <- head(country_counts, 10)
+
+# Create a bar plot
+ggplot(top_countries, aes(x = reorder(country, -count), y = count)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  labs(title = "Top 10 Countries with Highest Number of Billionaires", x = "Country", y = "Frequency")
+```
+
+```{r}
+# Group by country and calculate total finalWorth
+data_summary <- data %>%
+  group_by(country) %>%
+  summarise(total_finalWorth = sum(finalWorth, na.rm = TRUE)) %>%
+  arrange(desc(total_finalWorth))
+
+# Filter for top 10 countries
+top_countries <- data_summary %>%
+  top_n(10, total_finalWorth)
+
+# Create barplot
+ggplot(top_countries, aes(x = reorder(country, -total_finalWorth), y = total_finalWorth)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  labs(x = "Country", y = "Total Final Worth", title = "Top 10 Countries by Total Final Worth")
+
+```
+
+
+```{r}
+# Count the frequency of each country
+country_citizenship_counts <- data %>%
+  group_by(countryOfCitizenship) %>%
+  summarise(count = n()) %>%
+  arrange(desc(count))
+
+# Select the top 10 countries
+top_countries <- head(country_citizenship_counts, 10)
+
+# Create a bar plot
+ggplot(top_countries, aes(x = reorder(countryOfCitizenship, -count), y = count)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  labs(title = "Top 10 Countries of Citizenship with Highest Number of Billionaires", x = "Country of Citizenship", y = "Frequency")
+```
+
+```{r}
+# Filter out rows where the city is blank
+filtered_data <- data %>%
+  filter(!is.na(city) & city != "")
+
+# Count the frequency of each city and country
+city_counts <- filtered_data %>%
+  group_by(city, country) %>%
+  summarise(count = n()) %>%
+  arrange(desc(count))
+
+# Select the top 10 cities
+top_cities <- head(city_counts, 10)
+
+# Create a color scale based on the country
+color_scale <- scales::hue_pal()(length(unique(top_cities$country)))
+
+# Create a bar plot
+ggplot(top_cities, aes(x = reorder(city, -count), y = count, fill = country)) +
+  geom_bar(stat = "identity") +
+  scale_fill_manual(values = color_scale, na.value = "gray") +  # Assign colors based on the country
+  labs(title = "Top 10 Cities with Highest Number of Billionaires", x = "City", y = "Frequency")
+
+```
+
+```{r}
+# Filter out rows where the city is blank
+filtered_data <- data %>%
+  filter(!is.na(city) & city != "")
+
+# Count the frequency of each city and country
+city_Worth <- filtered_data %>%
+  group_by(city, country) %>%
+  summarise(total_finalWorth = sum(finalWorth, na.rm = TRUE)) %>%
+  arrange(desc(total_finalWorth))
+
+# Select the top 10 cities
+top_city_worth <- head(city_Worth, 10)
+
+# Create a color scale based on the country
+color_scale <- scales::hue_pal()(length(unique(top_city_worth$country)))
+
+# Create a bar plot
+ggplot(top_city_worth, aes(x = reorder(city, -total_finalWorth), y = total_finalWorth, fill = country)) +
+  geom_bar(stat = "identity") +
+  scale_fill_manual(values = color_scale, na.value = "gray") +  # Assign colors based on the country
+  labs(title = "Top 10 Cities with Highest Total Final Worth", x = "City", y = "Total Final Worth")
+
+```
+
+
+
+```{r}
+# Filter out rows where the state is blank
+filtered_data1 <- data %>%
+  filter(!is.na(state) & state != "")
+
+# Count the frequency of each state
+state_counts <- filtered_data1 %>%
+  group_by(state) %>%
+  summarise(count = n()) %>%
+  arrange(desc(count))
+
+# Select the top 10 states
+top_states <- head(state_counts, 10)
+
+# Create a bar plot
+ggplot(top_states, aes(x = reorder(state, -count), y = count)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  labs(title = "Top 10 States with Highest Number of Billionaires", x = "State", y = "Frequency")
+```
+
+
+
+
+
+
+
+```{r}
+# Filter out rows where the organization is blank
+filtered_data2 <- data %>%
+  filter(!is.na(organization) & organization != "")
+
+
+# Count the frequency of each organization
+organization_counts <- filtered_data2 %>%
+  group_by(organization) %>%
+  summarise(count = n()) %>%
+  arrange(desc(count))
+
+# Select the top 10 organization
+top_organization <- head(organization_counts, 10)
+
+# Create a bar plot
+ggplot(top_organization, aes(x = reorder(organization, -count), y = count)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  labs(title = "Top 10 Organizations with Highest Number of Billionaires", x = "Organization", y = "Frequency")+
+  theme(axis.text.x = element_text(angle = 90, vjust=0.1, hjust=0.5))
+```
+```{r}
+# Filter out rows where the organization is blank
+filtered_data2 <- data %>%
+  filter(!is.na(organization) & organization != "")
+
+# Sum the finalWorth of each organization
+organization_worth <- filtered_data2 %>%
+  group_by(organization) %>%
+  summarise(total_finalWorth1 = sum(finalWorth, na.rm = TRUE)) %>%
+  arrange(desc(total_finalWorth1))
+
+# Select the top 10 organizations
+top_organization_worth <- head(organization_worth, 10)
+
+# Create a bar plot
+ggplot(top_organization_worth, aes(x = reorder(organization, -total_finalWorth1), y = total_finalWorth1)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  labs(title = "Top 10 Organizations with Highest Total Worth of Billionaires", x = "Organization", y = "Total Final Worth")+
+  theme(axis.text.x = element_text(angle = 90, vjust=0.1, hjust=0.5))
+
+```
+
+
+```{r}
+# Filter out rows where the title is blank
+filtered_data4 <- data %>%
+  filter(!is.na(title) & title != "")
+
+# Count the frequency of each title
+title <- filtered_data4 %>%
+  group_by(title) %>%
+  summarise(count = n()) %>%
+  arrange(desc(count))
+
+# Select the top 10 titles
+top_title <- head(title, 10)
+
+# Create a bar plot of birth month
+ggplot(top_title, aes(x = reorder(title, -count), y = count)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  labs(title = "Top 10 Titles of Billionaires", x = "Title", y = "Frequency")+
+  theme(axis.text.x = element_text(angle = 90, vjust=0.1, hjust=0.5))
+```
+
+
+```{r}
+# Count the frequency of each gender
+gender_counts <- data %>%
+  group_by(gender) %>%
+  summarise(count = n())
+
+# Calculate the percentage
+gender_counts$percentage <- gender_counts$count / 
+  sum(gender_counts$count) * 100
+
+# Create a pie chart
+ggplot(gender_counts, aes(x = "", y = count, fill = gender)) +
+  geom_bar(stat = "identity", width = 1) +
+  geom_text(aes(label = sprintf("%.1f%%", percentage)), position = position_stack(vjust = 0.5)) +
+  coord_polar("y") +  
+  labs(title = "Distribution of Gender", fill = "Gender") +
+  theme_void() 
+```
+
+```{r}
+# Count the frequency of each status
+selfMade_counts <- data %>%
+  group_by(selfMade) %>%
+  summarise(count = n())
+
+# Calculate the percentage
+selfMade_counts$percentage <- selfMade_counts$count / sum(selfMade_counts$count) * 100
+
+# Create a pie chart
+ggplot(selfMade_counts, aes(x = "", y = count, fill = selfMade)) +
+  geom_bar(stat = "identity", width = 1) +
+  geom_text(aes(label = sprintf("%.1f%%", percentage)), position = position_stack(vjust = 0.5)) +
+  coord_polar("y") +  
+  labs(title = "Distribution of SelfMade", fill = "SelfMade") +
+  theme_void() 
+```
+
+```{r}
+# Count the frequency of each status
+moved_counts <- data %>%
+  group_by(moved) %>%
+  summarise(count = n())
+
+# Calculate the percentage
+moved_counts$percentage <- moved_counts$count / sum(moved_counts$count) * 100
+
+# Create a pie chart
+ggplot(moved_counts, aes(x = "", y = count, fill = moved)) +
+  geom_bar(stat = "identity", width = 1) +
+  geom_text(aes(label = sprintf("%.1f%%", percentage)), position = position_stack(vjust = 0.5)) +
+  coord_polar("y") +  
+  labs(title = "Distribution of Moved", fill = "Moved") +
+  theme_void() 
+```
+
+```{r}
+
+# Boxplot for 'gender' and 'finalWorth'
+boxplot(log(data$finalWorth)~data$gender, main="Gender vs Final Worth", xlab="Gender", ylab="Final Worth")
+
+# Boxplot for 'status' and 'finalWorth'
+boxplot(log(data$finalWorth)~data$status, main="Status vs Final Worth", xlab="Status", ylab="Final Worth")
+
+# Boxplot for 'selfMade' and 'finalWorth'
+boxplot(log(data$finalWorth)~data$selfMade, main="Self Made vs Final Worth", xlab="Self Made", ylab="Final Worth")
+
+# Boxplot for 'moved' and 'finalWorth'
+boxplot(log(data$finalWorth)~data$moved, main="Moved vs Final Worth", xlab="Moved", ylab="Final Worth")
+
+
+```
+
+
+
+```{r}
+# Count the frequency of each last name
+last_name_counts <- data %>%
+  group_by(lastName) %>%
+  summarise(count = n()) %>%
+  arrange(desc(count))
+
+# Select the top 10 last names
+top_last_names <- head(last_name_counts, 10)
+
+# Create a bar plot
+ggplot(top_last_names, aes(x = reorder(lastName, -count), y = count)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  labs(title = "Top 10 Last Names", x = "Last Name", y = "Frequency")
+```
+```{r}
+# Sum the finalWorth of each last name
+name_worth <- filtered_data2 %>%
+  group_by(lastName) %>%
+  summarise(total = sum(finalWorth, na.rm = TRUE)) %>%
+  arrange(desc(total))
+
+# Select the top 10 organizations
+top_name_worth <- head(name_worth, 10)
+
+# Create a bar plot
+ggplot(top_name_worth, aes(x = reorder(lastName, -total), y = total)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  labs(title = "Top 10 Last Names with Highest Total Final Worth", x = "Last Name", y = "Total Final Worth")+
+  theme(axis.text.x = element_text(angle = 0, vjust=0.1, hjust=0.5))
+
+```
+
+```{r}
+# Filter out rows where the birth month is blank
+filtered_data3 <- data %>%
+  filter(!is.na(birthMonth) & birthMonth != "")
+
+# Count the frequency of each month
+birthMonth <- filtered_data3 %>%
+  group_by(birthMonth) %>%
+  summarise(count = n()) %>%
+  arrange(desc(count))
+
+# Create a bar plot of birth month
+ggplot(birthMonth, aes(x = reorder(birthMonth, -count), y = count)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  labs(title = "Borth Months of Billionaires", x = "Birth Month", y = "Frequency")
+```
+```{r}
+summary(data[, sapply(data, is.numeric)])
+```
+
+```{r}
+unique_countriesOfCitizenship <- unique(data$countryOfCitizenship)
+
+# Number of unique countries
+num_unique_countriesOfCitizenship <- length(unique_countriesOfCitizenship)
+
+# Print the unique countries and the number of unique countries
+print(unique_countriesOfCitizenship)
+print(num_unique_countriesOfCitizenship)
+```
+
+
+```{r}
+unique_countries <- unique(data$country)
+
+# Number of unique countries
+num_unique_countries <- length(unique_countries)
+
+# Print the unique countries and the number of unique countries
+print(unique_countries)
+print(num_unique_countries)
+```
+
+
+
+```{r}
+# Find out the highest ranking billionaire for each country
+highest_ranking_billionaires <- data %>%
+  arrange(country, rank) %>%
+  group_by(country) %>%
+  slice_head(n = 1) %>%
+  ungroup()
+
+highest_ranking_billionaires <- highest_ranking_billionaires %>%
+  filter(!is.na(gdp_country))
+
+# Display the resulting data frame
+print(highest_ranking_billionaires)
+```
+
+```{r}
+# Find out what percentage of their countries isin these billionaires hand
+result_df <- highest_ranking_billionaires %>%
+  mutate(percentage = (((finalWorth*10^6) / gdp_country) * 100)) %>%
+  ungroup()
+
+result_df <- result_df %>%
+  arrange(desc(percentage))
+
+print(result_df)
+
+```
+```{r}
+Percentage_data <- result_df[, c("rank", "personName", "source", "country", "selfMade", "percentage")]
+
+head(Percentage_data)
+
+```
+
+
+
+```{r}
+hist(data$finalWorth)
+```
+
+```{r}
+hist(log(data$finalWorth))
+```
+
+```{r}
+data$rank <- as.numeric(data$rank)
+data$finalWorth <- as.numeric(data$finalWorth)
+data$age <- as.numeric(data$age)
+data$population_country <- as.numeric(data$population_country)
+```
+
+```{r}
+# Correlation Plot
+data1 <- na.omit(data)
+
+library(corrplot)
+cor_matrix <- cor(data1[, c(1, 2, 5, 25, 26, 27)])
+par(mar = c(1, 1, 1, 1))
+corrplot(cor_matrix, addCoef.col = TRUE, number.cex = 0.75)
+```
+
+```{r}
+# Necessary package for tree
+library(rpart)
+library(maptree)
+```
+
+```{r}
+tree <- rpart(top500 ~ age + selfMade + gender + cpi_country + moved + cpi_change_country + gdp_per_capita + gross_tertiary_education_enrollment + gross_primary_education_enrollment_country + life_expectancy_country + tax_revenue_country_country + total_tax_rate_country + population_country,
+              data=data,cp=0.002)
+
+pruned <- clip.rpart(tree, best = 10)
+draw.tree(pruned, cex=.5, 
+          nodeinfo=TRUE, units="Rich Rate",
+          cases="obs",
+          digits=1, print.levels=TRUE,
+          new=TRUE)
+
+```
+
+```{r}
+# Simple linear regression
+model <- lm(log(finalWorth) ~age+status+gender+cpi_country+cpi_change_country+ moved +
+              gdp_per_capita+gross_tertiary_education_enrollment+gross_primary_education_enrollment_country+life_expectancy_country+tax_revenue_country_country+total_tax_rate_country+population_country, data = data)
+
+# Display summary statistics of the linear regression model
+summary(model)
+```
+
+```{r}
+# Simple linear regression
+model1 <- lm(top500 ~ age+status+gender+cpi_country+cpi_change_country+moved+
+              gdp_per_capita+gross_tertiary_education_enrollment+gross_primary_education_enrollment_country+life_expectancy_country+tax_revenue_country_country+total_tax_rate_country+population_country, data = data)
+
+# Display summary statistics of the linear regression model
+summary(model1)
+```
+```{r}
+# Install and load the quantreg package
+library(quantreg)
+```
+
+```{r}
+# Perform the quantile regression
+rq.model <- rq(log(finalWorth) ~ age + status + gender + cpi_country + cpi_change_country + moved + gdp_per_capita + gross_tertiary_education_enrollment + gross_primary_education_enrollment_country + life_expectancy_country + tax_revenue_country_country + total_tax_rate_country + population_country, data = data, tau = 0.5)
+
+# Print the summary of the model
+summary(rq.model)
+
+```
+
+```{r}
+# Get the coefficients of the model
+coef <- coef(rq.model)
+
+# Exponentiate the coefficients
+exp_coef <- exp(coef)
+
+# Print the exponentiated coefficients
+print(exp_coef)
+
+```
+
+```{r}
+# Calculate the residuals
+residuals <- resid(rq.model)
+
+# Create a basic scatterplot of the residuals
+plot(residuals, main="Residuals Plot", xlab="Index", ylab="Residuals")
+
+# Add a horizontal line at y=0
+abline(h=0, col="red")
+
+# Create a histogram of the residuals
+hist(residuals, main="Histogram of Residuals", xlab="Residuals")
+
+# Create a QQ plot of the residuals
+qqnorm(residuals, main="QQ Plot of Residuals")
+qqline(residuals)
+
+```
+
+###Association Rule
+```{r}
+#Start association rule
+library(dplyr)
+library(cluster) 
+library(arules)
+```
+
+```{r}
+data$top500 <- as.character(data$top500)
+data$selfMade <- as.character(data$selfMade)
+```
+
+
+```{r}
+#Making a new variable "super_rich" based on "finalWorth" column
+
+#Chosing breaks
+x <- median(data$finalWorth)
+breaks <- c(1000, x , 211000)
+
+# Bin the data
+data$super_rich <- cut(data$finalWorth, breaks = breaks, labels = c("False", "True"))
+```
+
+```{r}
+#Choosing only categorical variables for association rule
+variables <- data[, c("top500","category", "country", "source", "selfMade", "gender", "moved")]
+str(variables)
+```
+
+```{r, include=FALSE}
+# Convert every column to categorical variable
+cat_var <- as.data.frame(lapply(variables, factor))
+cat_var <- transactions(cat_var)
+itemLabels(cat_var)
+```
+
+
+```{r}
+#bar plot  
+itemFrequencyPlot(cat_var, topN=10, type='absolute',horiz=T,cex=0.7)
+```
+ 
+```{r}
+# set rhs=c("top500=1")
+rules <- apriori(cat_var, parameter = list(minlen=2, supp = .00001, conf = .00001),
+                 appearance = list(rhs=c("top500=1"), default = "lhs"),
+                 control = list(verbose=T))
+
+```
+
+
+
+
